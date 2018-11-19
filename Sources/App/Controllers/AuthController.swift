@@ -10,11 +10,7 @@ import Vapor
 import FluentSQLite
 import Random
 
-struct RegisterForm: Content {
-    var facebook_token: String
-}
-
-struct FacebookLoginResult: Content {
+struct FacebookResponse: Content {
     var email: String
     var name: String
     var id: String
@@ -22,18 +18,18 @@ struct FacebookLoginResult: Content {
 
 final class AuthController {
     func register(_ req: Request) throws -> Future<AuthToken> {
-        return try req.content.decode(RegisterForm.self).flatMap { form in
+        return req.content.get(String.self, at: ["facebook_token"]).flatMap { facebookToken in
             var urlComponents = URLComponents(string: "https://graph.facebook.com/me")
             urlComponents?.queryItems = [
                 URLQueryItem(name: "fields", value: "email,name"),
-                URLQueryItem(name: "access_token", value: form.facebook_token),
+                URLQueryItem(name: "access_token", value: facebookToken),
             ]
             return try req.client().get((urlComponents?.url)!, headers: [:]).flatMap { response in
                 guard response.http.status == .ok else {
                     throw Abort(.badRequest)
                 }
-                return try response.content.decode(FacebookLoginResult.self).flatMap { result in
-                    return try self.createUser(for: result, on: req)
+                return try response.content.decode(FacebookResponse.self).flatMap { response in
+                    return try self.createUser(for: response, on: req)
                 }
             }.flatMap { user in
                 return try self.createAuthToken(for: user, on: req)
@@ -57,13 +53,13 @@ extension AuthController {
         }
     }
     
-    func createUser(for fbResult: FacebookLoginResult, on req: Request) throws -> Future<User> {
-        return User.query(on: req).filter(\.facebookId == fbResult.id).first().flatMap {
+    func createUser(for fbResponse: FacebookResponse, on req: Request) throws -> Future<User> {
+        return User.query(on: req).filter(\.facebookId == fbResponse.id).first().flatMap {
             existingUser in
             if let user = existingUser {
                 return Future.map(on: req) { user }
             } else {
-                let newUser = User(facebookId: fbResult.id, email: fbResult.email, name: fbResult.name)
+                let newUser = User(facebookId: fbResponse.id, email: fbResponse.email, name: fbResponse.name)
                 return newUser.save(on: req)
             }
         }
