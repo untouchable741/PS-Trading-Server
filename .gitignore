@@ -66,3 +66,9 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+Packages
+.build
+xcuserdata
+*.xcodeproj
+DerivedData/
+.DS_Store
