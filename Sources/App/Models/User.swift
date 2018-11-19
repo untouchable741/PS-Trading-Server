@@ -20,10 +20,24 @@ struct User: SQLiteModel {
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
     
+    var disks: Children<User, Disk> {
+        return children(\.contactId)
+    }
+    
     init(facebookId: String, email: String, name: String) {
         self.facebookId = facebookId
         self.email = email
         self.name = name
+    }
+    
+    struct UpdateUserForm: Content {
+        var name: String?
+        var pushToken: String?
+        
+        enum CodingKeys: String, CodingKey {
+            case name
+            case pushToken = "push_token"
+        }
     }
 }
 
