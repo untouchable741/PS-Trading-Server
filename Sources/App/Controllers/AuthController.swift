@@ -16,24 +16,17 @@ struct FacebookResponse: Content {
     var id: String
 }
 
+struct LoginResponse: Content {
+    var token: String
+    var profile: User
+}
+
 final class AuthController {
-    func register(_ req: Request) throws -> Future<AuthToken> {
-        return req.content.get(String.self, at: ["facebook_token"]).flatMap { facebookToken in
-            var urlComponents = URLComponents(string: "https://graph.facebook.com/me")
-            urlComponents?.queryItems = [
-                URLQueryItem(name: "fields", value: "email,name"),
-                URLQueryItem(name: "access_token", value: facebookToken),
-            ]
-            return try req.client().get((urlComponents?.url)!, headers: [:]).flatMap { response in
-                guard response.http.status == .ok else {
-                    throw Abort(.badRequest)
-                }
-                return try response.content.decode(FacebookResponse.self).flatMap { response in
-                    return try self.createUser(for: response, on: req)
-                }
-            }.flatMap { user in
-                return try self.createAuthToken(for: user, on: req)
-            }
+    func login(_ req: Request) throws -> Future<LoginResponse> {
+        return try fetchFacebookProfile(on: req)
+                    .flatMap { try self.createUser(for: $0, on: req) }
+                    .flatMap { try self.createAuthToken(for: $0, on: req)
+                        .map { LoginResponse(token: $0.0.token, profile: $0.1) }
         }
     }
 }
@@ -41,14 +34,14 @@ final class AuthController {
 
 //MAKR - Helpers
 extension AuthController {
-    func createAuthToken(for user: User, on req: Request) throws -> Future<AuthToken> {
+    func createAuthToken(for user: User, on req: Request) throws -> Future<(AuthToken, User)> {
         return try user.authTokens.query(on: req).first().flatMap { existingToken in
             if let token = existingToken {
-                return Future.map(on: req) { token }
+                return Future.map(on: req) { (token, user) }
             } else {
                 let tokenString = try URandom().generateData(count: 32).base64URLEncodedString()
                 let authToken = AuthToken(token: tokenString, userId: try user.requireID())
-                return authToken.save(on: req)
+                return authToken.save(on: req).map { ($0, user) }
             }
         }
     }
@@ -62,6 +55,23 @@ extension AuthController {
                 let newUser = User(facebookId: fbResponse.id, email: fbResponse.email, name: fbResponse.name)
                 return newUser.save(on: req)
             }
+        }
+    }
+    
+    func fetchFacebookProfile(on req: Request) throws -> Future<FacebookResponse> {
+        guard let facebookToken = try? req.content.syncGet(String.self, at: ["facebook_token"]) else {
+            throw Abort(.badRequest)
+        }
+        var urlComponents = URLComponents(string: "https://graph.facebook.com/me")
+        urlComponents?.queryItems = [
+            URLQueryItem(name: "fields", value: "email,name"),
+            URLQueryItem(name: "access_token", value: facebookToken),
+        ]
+        return try req.client().get((urlComponents?.url)!, headers: [:]).flatMap { response in
+            guard response.http.status == .ok else {
+                throw Abort(.badRequest)
+            }
+            return try response.content.decode(FacebookResponse.self)
         }
     }
 }

@@ -3,7 +3,8 @@ import Vapor
 /// Register your application's routes here.
 public func routes(_ router: Router) throws {
     let authController = AuthController()
-    router.post("register", use: authController.register)
+    router.post("register", use: authController.login)
+    router.post("login", use: authController.login)
     
     let authMiddlewares = [User.tokenAuthMiddleware()]
     let authedRoutes = router.grouped(authMiddlewares)
