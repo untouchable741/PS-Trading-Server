@@ -29,14 +29,22 @@ struct User: SQLiteModel {
         return children(\.ownerId)
     }
     
-    init(facebookId: String, email: String, name: String) {
+    init(facebookId: String,
+         email: String,
+         name: String,
+         avatar: String?) {
         self.facebookId = facebookId
         self.email = email
         self.name = name
+        self.avatar = avatar
     }
     
     struct UpdateUserForm: Content {
         var name: String?
+        var email: String?
+        var phone: String?
+        var avatar: String?
+        var location: String?
         var pushToken: String?
         
         enum CodingKeys: String, CodingKey {

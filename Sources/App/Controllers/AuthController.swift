@@ -9,11 +9,14 @@ import Foundation
 import Vapor
 import FluentSQLite
 import Random
+import S3
+import Crypto
 
 struct FacebookResponse: Content {
     var email: String
     var name: String
     var id: String
+    var avatar: String?
 }
 
 struct LoginResponse: Content {
@@ -52,7 +55,10 @@ extension AuthController {
             if let user = existingUser {
                 return Future.map(on: req) { user }
             } else {
-                let newUser = User(facebookId: fbResponse.id, email: fbResponse.email, name: fbResponse.name)
+                let newUser = User(facebookId: fbResponse.id,
+                                   email: fbResponse.email,
+                                   name: fbResponse.name,
+                                   avatar: fbResponse.avatar)
                 return newUser.save(on: req)
             }
         }
@@ -67,11 +73,36 @@ extension AuthController {
             URLQueryItem(name: "fields", value: "email,name"),
             URLQueryItem(name: "access_token", value: facebookToken),
         ]
+        
         return try req.client().get((urlComponents?.url)!, headers: [:]).flatMap { response in
             guard response.http.status == .ok else {
                 throw Abort(.badRequest)
             }
-            return try response.content.decode(FacebookResponse.self)
+            
+            return try response.content.decode(FacebookResponse.self).flatMap { fbResponse in
+                var urlComponents = URLComponents(string: "https://graph.facebook.com/\(fbResponse.id)/picture")
+                urlComponents?.queryItems = [
+                    URLQueryItem(name: "height", value: "300"),
+                    URLQueryItem(name: "width", value: "300"),
+                    URLQueryItem(name: "access_token", value: facebookToken),
+                ]
+                return try req.client().get((urlComponents?.url)!, headers: [:]).flatMap { response in
+                    let imagePathUrl = URL(fileURLWithPath: "\(DirectoryConfig.detect().workDir)\(fbResponse.id).jpg")
+                    return response.http.body.consumeData(on: req).flatMap { data in
+                        try data.write(to: imagePathUrl)
+                        let s3 = try req.makeS3Client()
+                        let avatarPath = "avatars/\(fbResponse.id).jpg"
+                        return try s3.put(file: imagePathUrl,
+                                   destination: avatarPath,
+                                        access: .publicRead,
+                                            on: req).map { response in
+                            var newFbResponse = fbResponse
+                            newFbResponse.avatar = Environment.get("s3_avatars_base_url")! + avatarPath
+                            return newFbResponse
+                        }
+                    }
+                }
+            }
         }
     }
 }

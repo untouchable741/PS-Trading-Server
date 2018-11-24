@@ -1,9 +1,13 @@
 import FluentSQLite
 import Vapor
 import Authentication
+import S3
 
 /// Called before your application initializes.
 public func configure(_ config: inout Config, _ env: inout Environment, _ services: inout Services) throws {
+    
+    try env.injectConfigFile(DirectoryConfig.detect().workDir + "config.json")
+    
     /// Register providers first
     try services.register(FluentSQLiteProvider())
     try services.register(AuthenticationProvider())
@@ -34,4 +38,18 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     migrations.add(model: Disk.self, database: .sqlite)
     services.register(migrations)
 
+    let s3Config = S3Signer.Config(accessKey: Environment.get("s3_access_key")!,
+                                   secretKey: Environment.get("s3_secret_key")!,
+                                   region: .apSoutheast1)
+    try services.register(s3: s3Config, defaultBucket: Environment.get("s3_default_bucket")!)
+}
+
+extension Environment {
+    func injectConfigFile(_ path: String) throws {
+        guard let data = FileManager.default.contents(atPath: path),
+              let jsonConfig = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: String] else {
+            return
+        }
+        jsonConfig.forEach { setenv($0.key, $0.1, 1) }
+    }
 }

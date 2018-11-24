@@ -16,6 +16,10 @@ final class UserController {
         var user = try req.requireAuthenticated(User.self)
         return try req.content.decode(User.UpdateUserForm.self).flatMap { form in
             user.name = form.name ?? user.name
+            user.email = form.email ?? user.email
+            user.phone = form.phone ?? user.phone
+            user.avatar = form.avatar ?? user.avatar
+            user.location = form.location ?? user.location
             user.pushToken = form.pushToken ?? user.pushToken
             return user.save(on: req)
         }
