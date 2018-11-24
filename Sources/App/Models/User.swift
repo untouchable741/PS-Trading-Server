@@ -49,6 +49,10 @@ struct User: SQLiteModel {
         
         enum CodingKeys: String, CodingKey {
             case name
+            case email
+            case phone
+            case avatar
+            case location
             case pushToken = "push_token"
         }
     }
