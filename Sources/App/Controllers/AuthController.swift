@@ -96,6 +96,7 @@ extension AuthController {
                                    destination: avatarPath,
                                         access: .publicRead,
                                             on: req).map { response in
+                            try FileManager.default.removeItem(at: imagePathUrl)
                             var newFbResponse = fbResponse
                             newFbResponse.avatar = Environment.get("s3_avatars_base_url")! + avatarPath
                             return newFbResponse
