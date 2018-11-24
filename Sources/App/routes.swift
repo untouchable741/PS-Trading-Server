@@ -9,7 +9,7 @@ public func routes(_ router: Router) throws {
     let authMiddlewares = [User.tokenAuthMiddleware()]
     let authedRoutes = router.grouped(authMiddlewares)
     userRoutes(authedRoutes.grouped("user"))
-    diskRoutes(authedRoutes.grouped("disk"))
+    inventoryRoutes(authedRoutes.grouped("inventories"))
 }
 
 func userRoutes(_ router: Router) {
@@ -20,10 +20,10 @@ func userRoutes(_ router: Router) {
     }
 }
 
-func diskRoutes(_ router: Router) {
-    let diskController = DiskController()
-    router.post("create", use: diskController.create)
-    router.get("list", use: diskController.list)
-    router.post(Int.parameter, use: diskController.update)
-    router.delete(Int.parameter, use: diskController.delete)
+func inventoryRoutes(_ router: Router) {
+    let inventoriesController = InventoriesController()
+    router.post("create", use: inventoriesController.create)
+    router.get("list", use: inventoriesController.list)
+    router.post(Int.parameter, use: inventoriesController.update)
+    router.delete(Int.parameter, use: inventoriesController.delete)
 }

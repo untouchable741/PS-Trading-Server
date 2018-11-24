@@ -35,7 +35,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     var migrations = MigrationConfig()
     migrations.add(model: User.self, database: .sqlite)
     migrations.add(model: AuthToken.self, database: .sqlite)
-    migrations.add(model: Disk.self, database: .sqlite)
+    migrations.add(model: Inventory.self, database: .sqlite)
     services.register(migrations)
 
     let s3Config = S3Signer.Config(accessKey: Environment.get("s3_access_key")!,
