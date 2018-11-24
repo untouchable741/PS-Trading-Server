@@ -1,4 +1,4 @@
-import FluentSQLite
+import FluentPostgreSQL
 import Vapor
 import Authentication
 import S3
@@ -9,7 +9,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     try env.injectConfigFile(DirectoryConfig.detect().workDir + "config.json")
     
     /// Register providers first
-    try services.register(FluentSQLiteProvider())
+    try services.register(FluentPostgreSQLProvider())
     try services.register(AuthenticationProvider())
 
     /// Register routes to the router
@@ -23,19 +23,25 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     middlewares.use(ErrorMiddleware.self) // Catches errors and converts to HTTP response
     services.register(middlewares)
 
-    // Configure a SQLite database
-    let sqlite = try SQLiteDatabase(storage: .file(path: "\(DirectoryConfig.detect().workDir)ps-trading.db"))
 
+    let config = PostgreSQLDatabaseConfig(hostname: Environment.get("postgres_db_host")!,
+                                          port: Int(Environment.get("postgres_db_port")!)!,
+                                          username: Environment.get("postgres_db_username")!,
+                                          database: Environment.get("postgres_db_name")!,
+                                          password: Environment.get("postgres_db_password")!)
+    
+    let postgres = PostgreSQLDatabase(config: config)
+    
     /// Register the configured SQLite database to the database config.
     var databases = DatabasesConfig()
-    databases.add(database: sqlite, as: .sqlite)
+    databases.add(database: postgres, as: .psql)
     services.register(databases)
 
     /// Configure migrations
     var migrations = MigrationConfig()
-    migrations.add(model: User.self, database: .sqlite)
-    migrations.add(model: AuthToken.self, database: .sqlite)
-    migrations.add(model: Inventory.self, database: .sqlite)
+    migrations.add(model: User.self, database: .psql)
+    migrations.add(model: AuthToken.self, database: .psql)
+    migrations.add(model: Inventory.self, database: .psql)
     services.register(migrations)
 
     let s3Config = S3Signer.Config(accessKey: Environment.get("s3_access_key")!,

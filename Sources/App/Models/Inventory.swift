@@ -7,9 +7,10 @@
 
 import Foundation
 import Vapor
-import FluentSQLite
+import FluentPostgreSQL
 
-struct Inventory: SQLiteModel {
+
+struct Inventory: PostgreSQLModel {
     var id: Int?
     var gameId: Int
     var tradeItemIds: String?
@@ -72,7 +73,7 @@ struct Inventory: SQLiteModel {
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(id, forKey: .id)
         try container.encode(gameId, forKey: .gameId)
         try container.encode(tradeItemIds?.toIntArray(), forKey: .tradeItemIds)
         try container.encode(price, forKey: .price)

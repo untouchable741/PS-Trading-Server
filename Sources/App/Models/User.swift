@@ -6,11 +6,11 @@
 //
 
 import Foundation
-import FluentSQLite
+import FluentPostgreSQL
 import Vapor
 import Authentication
 
-struct User: SQLiteModel {
+struct User: PostgreSQLModel {
     var id: Int?
     var name: String
     var phone: String?
@@ -59,7 +59,7 @@ struct User: SQLiteModel {
     
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(id, forKey: .id)
         try container.encode(name, forKey: .name)
         try container.encode(phone, forKey: .phone)
         try container.encode(avatar, forKey: .avatar)
