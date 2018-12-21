@@ -6,11 +6,11 @@
 //
 
 import Foundation
-import FluentPostgreSQL
+import FluentMySQL
 import Vapor
 import Authentication
 
-struct User: PostgreSQLModel {
+struct User: MySQLModel {
     var id: Int?
     var name: String
     var phone: String?

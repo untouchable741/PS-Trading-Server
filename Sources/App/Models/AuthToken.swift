@@ -7,10 +7,10 @@
 
 import Foundation
 import Vapor
-import FluentPostgreSQL
+import FluentMySQL
 import Authentication
 
-struct AuthToken: PostgreSQLModel {
+struct AuthToken: MySQLModel {
     var id: Int?
     var token: String
     var userId: User.ID

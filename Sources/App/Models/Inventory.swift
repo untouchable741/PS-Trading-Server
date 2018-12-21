@@ -7,10 +7,10 @@
 
 import Foundation
 import Vapor
-import FluentPostgreSQL
+import FluentMySQL
 
 
-struct Inventory: PostgreSQLModel {
+struct Inventory: MySQLModel {
     var id: Int?
     var gameId: Int
     var tradeItemIds: String?
@@ -29,7 +29,7 @@ struct Inventory: PostgreSQLModel {
     
     struct CreateInventoryForm: Content {
         var game_id: Int?
-        var trade_item_ids: [Int]?
+        var trade_item_ids: String?
         var price: Double?
         var region: String?
         var location: String?
@@ -46,7 +46,7 @@ struct Inventory: PostgreSQLModel {
          gameId: Int,
          ownerId: User.ID) {
         self.gameId = gameId
-        self.tradeItemIds = (form.trade_item_ids ?? []).toString()
+        self.tradeItemIds = form.trade_item_ids
         self.price = form.price ?? 0
         self.region = form.region ?? ""
         self.location = form.location ?? ""
@@ -60,7 +60,7 @@ struct Inventory: PostgreSQLModel {
     
     mutating func updated(from form: CreateInventoryForm) {
         self.gameId = form.game_id ?? gameId
-        self.tradeItemIds = (form.trade_item_ids != nil ? form.trade_item_ids?.toString() : tradeItemIds)
+        self.tradeItemIds = form.trade_item_ids
         self.price = form.price ?? price
         self.region = form.region ?? region
         self.location = form.location ?? location
@@ -75,7 +75,7 @@ struct Inventory: PostgreSQLModel {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(id, forKey: .id)
         try container.encode(gameId, forKey: .gameId)
-        try container.encode(tradeItemIds?.toIntArray(), forKey: .tradeItemIds)
+        try container.encode(tradeItemIds, forKey: .tradeItemIds)
         try container.encode(price, forKey: .price)
         try container.encode(region, forKey: .region)
         try container.encode(location, forKey: .location)
@@ -91,8 +91,7 @@ struct Inventory: PostgreSQLModel {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         gameId = try container.decode(Int.self, forKey: .gameId)
-        let tradeIds = try container.decode([Int]?.self, forKey: .tradeItemIds)
-        tradeItemIds = tradeIds?.toString()
+        tradeItemIds = try container.decode(String?.self, forKey: .tradeItemIds)
         price = try container.decode(Double.self, forKey: .price)
         region = try container.decode(String.self, forKey: .region)
         location = try container.decode(String.self, forKey: .location)

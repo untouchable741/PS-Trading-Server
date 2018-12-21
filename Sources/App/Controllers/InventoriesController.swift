@@ -6,9 +6,8 @@
 //
 
 import Foundation
-import FluentSQLite
+import FluentMySQL
 import Vapor
-import Fluent
 
 struct DeleteInventoryResponse: Content {
     var error: Bool
